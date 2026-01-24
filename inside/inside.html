@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Track and Yard Switch Control</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
+    .container {
+      position: relative;
+      width: 100%;
+    }
+
+    .responsive-image {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .circle {
+      position: absolute;
+      border-radius: 50%;
+      width: 3.75%;
+      aspect-ratio: 1 / 1;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .off    { background-color: black; }
+    .on     { background-color: yellow; }
+    .blue   { background-color: blue; }
+    .green  { background-color: green; }
+    .red    { background-color: red; }
+    .orange { background-color: orange; }
+
+    /* Track power positions */
+    .circle1  { top: 2.2%;  left: 35%; }
+    .circle2  { top: 8%;    left: 50%; }
+    .circle3  { top: 15%;   left: 65%; }
+    .circle4  { top: 45%;   left: 2%; }
+    .circle5  { top: 88%;   left: 40%; }
+    .circle6  { top: 81%;   left: 53%; }
+    .circle7  { top: 74%;   left: 65%; }
+    .circle8  { top: 67%;   left: 75%; }
+
+    /* Yard switch positions */
+    .circle9  { top: 88%;   left: 20%; }
+    .circle10 { top: 81%;   left: 28%; }
+    .circle11 { top: 74%;   left: 36%; }
+
+    /* Triple switch positions */
+    .circle12 { top: 8%;    left: 20%; }
+    .circle13 { top: 8.5%;  left: 76%; }
+	  .circle14 { top: 40%;   left: 95.5%; }
+	
+/* PWM slider container */
+    .pwm-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .pwm-slider {
+      width: clamp(150px, 20vw, 260px);
+    }
+
+    .circlePWM {
+      width: 3.75vw;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .pwm-slider-wrap {
+      position: relative;
+      display: inline-block;
+      --stepSize: clamp(34px, 4.8vw, 64px);
+      --stepTop:  calc(var(--stepSize) * -1.15);
+      --stepFont: calc(var(--stepSize) * 0.72);
+    }
+
+    .pwm-step-btn {
+      position: absolute;
+      top: var(--stepTop);
+      width: var(--stepSize);
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      background-color: white;
+      border: 2px solid black;
+      color: black;
+      font-weight: bold;
+      font-size: var(--stepFont);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      box-sizing: border-box;
+    }
+
+    .pwm-minus { left: 0; transform: translateX(-10%); }
+    .pwm-plus  { right: 0; transform: translateX(10%); }
+
+    .panic-btn {
+      position: absolute;
+      top: 50%;
+      left: 15%;
+      transform: translate(-50%, -50%);
+      width: 7.5vw;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      background-color: red;
+      color: white;
+      font-weight: bold;
+      font-size: 1.4vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 0 14px rgba(255,0,0,0.9);
+      user-select: none;
+    }
+
+    @media (max-width: 600px) {
+      .panic-btn { font-size: 3vw; }
+    }
+
+    .menu-btn {
+      position: absolute;
+      left: 80%;
+      transform: translate(-50%, -50%);
+      padding: clamp(8px, 1.2vw, 12px) clamp(22px, 2.8vw, 40px);
+      border-radius: 999px;
+      border: 2px solid black;
+      background: #e6e6e6;
+      color: #000;
+      font-weight: bold;
+      font-size: clamp(12px, 1.6vw, 18px);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .menu-btn:active { background: #cccccc; }
+
+    /* MENU / OUTSIDE vertical positioning */
+    .menu-up   { top: 37%; }   /* moved up by 10% */
+    .menu-down { top: 55%; }
+
+  </style>
+</head>
+<body>
+
+<div style="text-align:center; font-size: 3em; margin-top: 10px; margin-bottom: 15px;">
+    KKG&amp;I Inside Yard Control
+</div>  
+
+<div style="text-align:center; font-size: 2em; margin-top: -30px; ">
+    v4.0
+</div>  
+
+
+<div class="container">
+  <img src="inside.png" alt="Inside Layout" class="responsive-image" />
+
+  <!-- Track power circles -->
+  <div id="track8" class="circle circle1 off" onclick="handleTrackClick(8, this)"></div>
+  <div id="track9" class="circle circle2 off" onclick="handleTrackClick(9, this)"></div>
+  <div id="track10" class="circle circle3 off" onclick="handleTrackClick(10, this)"></div>
+  <div id="track11" class="circle circle4 off" onclick="handleTrackClick(11, this)"></div>
+  <div id="track12" class="circle circle5 off" onclick="handleTrackClick(12, this)"></div>
+  <div id="track13" class="circle circle6 off" onclick="handleTrackClick(13, this)"></div>
+  <div id="track14" class="circle circle7 off" onclick="handleTrackClick(14, this)"></div>
+  <div id="track15" class="circle circle8 off" onclick="handleTrackClick(15, this)"></div>
+
+  <!-- Yard switch circles -->
+  <div id="circle9"  class="circle circle9 blue"  onclick="yardClick(0)"></div>
+  <div id="circle10" class="circle circle10 blue" onclick="yardClick(1)"></div>
+  <div id="circle11" class="circle circle11 blue" onclick="yardClick(2)"></div>
+  <div id="circle14" class="circle circle14 blue" onclick="yardClick(3)"></div>
+
+  <!-- Triple switch circles -->
+  <div id="circle12" class="circle circle12 orange" onclick="tripleClick(0)"></div>
+  <div id="circle13" class="circle circle13 orange" onclick="tripleClick(1)"></div>
+
+  <!-- PANIC button -->
+  <div class="panic-btn" onclick="panicStop()">PANIC</div>
+
+  <!-- PWM Controls -->
+  <div class="pwm-container">
+    <div id="pwmStop" class="circlePWM red" onclick="stopNormal()"></div>
+
+    <div id="pwmSliderWrap" class="pwm-slider-wrap">
+      <div class="pwm-step-btn pwm-minus" onclick="stepPWM(-10)">−</div>
+      <div class="pwm-step-btn pwm-plus"  onclick="stepPWM(10)">+</div>
+      <input type="range" min="0" max="150" value="0"
+             class="pwm-slider" id="pwmSlider">
+    </div>
+
+    <div id="pwmDirection" class="circlePWM green" onclick="toggleDirection()"></div>
+  </div>
+
+  <!-- MENU / OUTSIDE buttons -->
+  <button id="menuBtn" class="menu-btn menu-up"
+          onclick="window.location.href='/';">Menu</button>
+  <button id="outsideBtn" class="menu-btn menu-down">Outside</button>
+
+</div>
+
+<script>
+  const NORMAL_RAMP_TIME_MS = 2000;
+  const PANIC_RAMP_TIME_MS  = 250;
+  const STEP_RAMP_TIME_MS   = 250;
+  const RAMP_INTERVAL_MS    = 16;
+
+  let currentPWM = 0;
+  let rampTimer = null;
+  let sliderDragging = false;
+
+  // Motor status resync: pause polling updates briefly after any local motor command
+  // to prevent slider/STOP/PANIC bouncing due to readback latency.
+  let motorStatusHoldoffUntil = 0;
+  function noteLocalMotorCommand(holdMs = 1500) {
+    motorStatusHoldoffUntil = Date.now() + holdMs;
+  }
+
+  function sendPWM(val) {
+    currentPWM = val;
+    noteLocalMotorCommand();
+    fetch(`/motor_speed?val=${val}`);
+  }
+
+  function rampTo(target, rampTimeMs) {
+    noteLocalMotorCommand(Math.max(1500, rampTimeMs + 300));
+    const slider = document.getElementById("pwmSlider");
+    const minV = parseInt(slider.min, 10);
+    const maxV = parseInt(slider.max, 10);
+
+    const start = currentPWM;
+    const end = Math.max(minV, Math.min(maxV, target));
+
+    if (rampTimer) clearInterval(rampTimer);
+
+    const steps = Math.max(1, Math.round(rampTimeMs / RAMP_INTERVAL_MS));
+    let step = 0;
+
+    rampTimer = setInterval(() => {
+      step++;
+      const t = step / steps;
+      const v = Math.round(start + (end - start) * t);
+      slider.value = v;
+      sendPWM(v);
+
+      if (step >= steps) {
+        clearInterval(rampTimer);
+        rampTimer = null;
+      }
+    }, RAMP_INTERVAL_MS);
+  }
+
+  function stopNormal() { rampTo(0, NORMAL_RAMP_TIME_MS); }
+  function panicStop()  { rampTo(0, PANIC_RAMP_TIME_MS); }
+
+  function stepPWM(delta) {
+    const slider = document.getElementById("pwmSlider");
+    const minV = parseInt(slider.min, 10);
+    const maxV = parseInt(slider.max, 10);
+    const current = parseInt(slider.value, 10) || 0;
+    rampTo(Math.max(minV, Math.min(maxV, current + delta)), STEP_RAMP_TIME_MS);
+  }
+
+  const slider = document.getElementById("pwmSlider");
+
+  slider.addEventListener("pointerdown", () => {
+    sliderDragging = true;
+    if (rampTimer) clearInterval(rampTimer);
+  });
+
+  slider.addEventListener("pointerup", () => sliderDragging = false);
+
+  slider.addEventListener("input", () => {
+    const val = parseInt(slider.value, 10) || 0;
+    if (sliderDragging) sendPWM(val);
+    else rampTo(val, NORMAL_RAMP_TIME_MS);
+  });
+
+  function handleTrackClick(pin, el) {
+    let state;
+    if (el.classList.contains('off')) {
+      el.classList.remove('off'); el.classList.add('on'); state = 'on';
+    } else {
+      el.classList.remove('on');  el.classList.add('off'); state = 'off';
+    }
+    fetch(`/track_click?num=${pin}&state=${state}`);
+  }
+
+
+function updateTrackPower() {
+  fetch('/track_status').then(r => r.json()).then(states => {
+    // states is an array of 8 strings for pins 8..15: "on" or "off"
+    for (let i = 0; i < states.length; i++) {
+      const pin = 8 + i;
+      const el = document.getElementById(`track${pin}`);
+      if (!el) continue;
+      el.classList.remove('on','off');
+      el.classList.add(states[i]);
+    }
+  });
+}
+
+  function yardClick(num)   { fetch(`/yard_click?num=${num}`); }
+  function tripleClick(num) { fetch(`/triple_click?num=${num}`); }
+
+  function updateYardSwitches() {
+    fetch('/yard_status').then(r => r.json()).then(colors => {
+      ['circle9','circle10','circle11','circle14'].forEach((id,i) => {
+        const el = document.getElementById(id);
+        el.classList.remove('blue','green','red');
+        el.classList.add(colors[i]);
+      });
+    });
+  }
+
+  function updateTripleSwitches() {
+    fetch('/triple_status').then(r => r.json()).then(colors => {
+      ['circle12','circle13'].forEach((id,i) => {
+        const el = document.getElementById(id);
+        el.classList.remove('red','green','blue','orange');
+        el.classList.add(colors[i]);
+      });
+    });
+  }
+
+  function toggleDirection() {
+    const sliderVal = parseInt(slider.value, 10) || 0;
+    if (currentPWM !== 0 || sliderVal !== 0) return;
+
+    const el = document.getElementById("pwmDirection");
+    if (el.classList.contains("green")) {
+      el.classList.replace("green","red");
+      fetch("/motor_dir?state=low");
+    } else {
+      el.classList.replace("red","green");
+      fetch("/motor_dir?state=high");
+    }
+  }
+
+  
+  function updateMotorStatus() {
+    fetch('/motor_status')
+      .then(r => r.json())
+      .then(s => {
+        const slider = document.getElementById("pwmSlider");
+        if (!slider) return;
+
+        let pwmVal = parseInt(s.pwm, 10);
+        if (isNaN(pwmVal)) return;
+
+        const sliderMin = parseInt(slider.min, 10);
+        const sliderMax = parseInt(slider.max, 10);
+        pwmVal = Math.max(sliderMin, Math.min(sliderMax, pwmVal));
+
+        // While we are within the local-command holdoff window, do not modify the slider.
+        // This avoids bouncing near targets caused by brief stale /motor_status readbacks.
+        if (Date.now() < motorStatusHoldoffUntil) return;
+
+        // Don’t fight the user: only update when not dragging and no local ramp is running.
+        if (!sliderDragging && !rampTimer) {
+          const localVal = (parseInt(slider.value, 10) || 0);
+          if (localVal !== pwmVal) slider.value = pwmVal;
+          currentPWM = pwmVal;
+        }
+
+        // Optional: also sync direction indicator if another user changed it
+        const dirEl = document.getElementById("pwmDirection");
+        if (dirEl && (s.dir === "high" || s.dir === "low")) {
+          if (s.dir === "high") {
+            dirEl.classList.remove("red");
+            dirEl.classList.add("green");
+          } else {
+            dirEl.classList.remove("green");
+            dirEl.classList.add("red");
+          }
+        }
+      })
+      .catch(() => {});
+  }
+
+// Initial status sync on page load
+  updateTrackPower();
+  updateYardSwitches();
+  updateTripleSwitches();
+  updateMotorStatus();
+
+  setInterval(() => {
+    updateTrackPower();
+    updateYardSwitches();
+    updateTripleSwitches();
+  }, 1000);
+</script>
+
+</body>
+</html>
