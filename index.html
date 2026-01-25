@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Power Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        button {
+            font-size: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin: 8px 0;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* Secondary buttons */
+        .btn-secondary {
+            background-color: #2f6fab;
+        }
+        .btn-secondary:hover {
+            background-color: #285f93;
+        }
+
+        .btn-cancel {
+            background-color: #b33a3a;
+        }
+        .btn-cancel:hover {
+            background-color: #9e3232;
+        }
+
+        #otaPanel {
+            margin-top: 14px;
+        }
+
+        #otaStatus {
+            margin-top: 8px;
+            font-size: 16px;
+        }
+
+        a {
+            color: #2f6fab;
+        }
+    </style>
+</head>
+<body>
+    <h1>KKG&I Track Panel Version 3.5</h1>
+    <button onclick="window.location.href='/inside.html';">Go to Control</button>
+
+    <div id="otaPanel">
+        <button class="btn-secondary" id="btnEnableOTA">Enable OTA (60s)</button>
+        <button class="btn-cancel" id="btnCancelOTA" style="display:none;">Cancel OTA</button>
+        <div id="otaStatus">OTA: disabled</div>
+    </div>
+
+    <script>
+        const btnEnable = document.getElementById('btnEnableOTA');
+        const btnCancel = document.getElementById('btnCancelOTA');
+        const statusEl  = document.getElementById('otaStatus');
+
+        async function postJSON(url) {
+            const r = await fetch(url, { method: 'POST' });
+            if (!r.ok) throw new Error(await r.text());
+            return await r.json();
+        }
+
+        async function getJSON(url) {
+            const r = await fetch(url);
+            if (!r.ok) throw new Error(await r.text());
+            return await r.json();
+        }
+
+        function renderStatus(enabled, secondsLeft) {
+            if (enabled) {
+                btnCancel.style.display = 'inline-block';
+                statusEl.innerHTML = `OTA: <b>ENABLED</b> (${secondsLeft}s left) — <a href="/ota" target="_blank">Open OTA page</a>`;
+            } else {
+                btnCancel.style.display = 'none';
+                statusEl.textContent = 'OTA: disabled';
+            }
+        }
+
+        async function refreshStatus() {
+            try {
+                const s = await getJSON('/ota_status');
+                renderStatus(!!s.enabled, s.seconds_left || 0);
+            } catch (e) {
+                // fail quietly
+            }
+        }
+
+        btnEnable.addEventListener('click', async () => {
+            try {
+                await postJSON('/ota_enable');
+                await refreshStatus();
+            } catch (e) {
+                alert('Failed to enable OTA:\n' + e.message);
+            }
+        });
+
+        btnCancel.addEventListener('click', async () => {
+            try {
+                await postJSON('/ota_cancel');
+                await refreshStatus();
+            } catch (e) {
+                alert('Failed to cancel OTA:\n' + e.message);
+            }
+        });
+
+        refreshStatus();
+        setInterval(refreshStatus, 1000);
+    </script>
+</body>
+</html>
